@@ -1,0 +1,426 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Prescription - MediScan Pro{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="text-center mb-5">
+                <h1 class="display-5 fw-bold text-dark mb-3">
+                    <i class="fas fa-upload me-2 text-primary"></i>
+                    Upload Your Prescription
+                </h1>
+                <p class="lead text-muted">
+                    Take a photo or upload an image of your prescription to get detailed medicine information
+                </p>
+            </div>
+
+            <!-- Upload Card -->
+            <div class="card border-0 shadow-lg mb-4">
+                <div class="card-body p-5">
+                    <!-- Upload Methods -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <button id="cameraBtn" class="btn btn-primary btn-lg w-100 py-3">
+                                <i class="fas fa-camera fa-2x mb-2"></i>
+                                <br>
+                                Take Photo
+                                <br>
+                                <small class="opacity-75">Use device camera</small>
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button id="fileBtn" class="btn btn-outline-primary btn-lg w-100 py-3">
+                                <i class="fas fa-file-upload fa-2x mb-2"></i>
+                                <br>
+                                Choose File
+                                <br>
+                                <small class="opacity-75">Select from device</small>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Hidden file input -->
+                    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                    
+                    <!-- Camera modal will be inserted here -->
+                    <div id="cameraModal" class="modal fade" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-camera me-2"></i>Take Prescription Photo
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body text-center">
+                                    <video id="cameraVideo" class="img-fluid rounded mb-3" style="max-width: 100%; height: 300px;"></video>
+                                    <canvas id="cameraCanvas" style="display: none;"></canvas>
+                                    <div class="d-flex justify-content-center gap-3">
+                                        <button id="captureBtn" class="btn btn-success">
+                                            <i class="fas fa-camera me-2"></i>Capture
+                                        </button>
+                                        <button id="retakeBtn" class="btn btn-warning" style="display: none;">
+                                            <i class="fas fa-redo me-2"></i>Retake
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Drag and Drop Area -->
+                    <div id="dropArea" class="upload-area border rounded-3 p-5 text-center mb-4">
+                        <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted mb-2">Drag & Drop Your Image Here</h4>
+                        <p class="text-muted mb-0">or click to browse files</p>
+                        <small class="text-muted">Supports JPG, PNG, GIF (max 10MB)</small>
+                    </div>
+
+                    <!-- Preview Area -->
+                    <div id="previewArea" class="text-center mb-4" style="display: none;">
+                        <h5 class="mb-3">
+                            <i class="fas fa-eye me-2"></i>Preview
+                        </h5>
+                        <img id="imagePreview" class="img-fluid rounded shadow" style="max-height: 400px;">
+                        <div class="mt-3">
+                            <button id="processBtn" class="btn btn-success btn-lg me-3">
+                                <i class="fas fa-cogs me-2"></i>Process Prescription
+                            </button>
+                            <button id="clearBtn" class="btn btn-outline-secondary">
+                                <i class="fas fa-trash me-2"></i>Clear
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Processing Area -->
+                    <div id="processingArea" class="text-center py-5" style="display: none;">
+                        <div class="loading-spinner mx-auto mb-3"></div>
+                        <h5>Processing Your Prescription...</h5>
+                        <p class="text-muted">This may take a few moments</p>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 100%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Results Area -->
+                    <div id="resultsArea" style="display: none;">
+                        <div class="alert alert-success">
+                            <h5 class="alert-heading">
+                                <i class="fas fa-check-circle me-2"></i>Processing Complete!
+                            </h5>
+                            <p class="mb-0">We've successfully analyzed your prescription.</p>
+                        </div>
+
+                        <!-- OCR Text -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-text-width me-2"></i>Extracted Text
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="ocrText" class="font-monospace small bg-light p-3 rounded"></div>
+                            </div>
+                        </div>
+
+                        <!-- Detected Medicines -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-pills me-2"></i>Detected Medicines
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="medicinesList" class="row g-3"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="card border-0 bg-light">
+                <div class="card-body p-4">
+                    <h6 class="card-title">
+                        <i class="fas fa-info-circle me-2 text-info"></i>
+                        Tips for Better Results
+                    </h6>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Ensure the prescription is well-lit and clearly visible
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Hold the camera steady and avoid blurry images
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Make sure medicine names are not obscured
+                        </li>
+                        <li class="mb-0">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Use high-resolution images for better OCR accuracy
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentFile = null;
+let cameraStream = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const dropArea = document.getElementById('dropArea');
+    const fileInput = document.getElementById('fileInput');
+    const previewArea = document.getElementById('previewArea');
+    const imagePreview = document.getElementById('imagePreview');
+    const processingArea = document.getElementById('processingArea');
+    const resultsArea = document.getElementById('resultsArea');
+    const fileBtn = document.getElementById('fileBtn');
+    const cameraBtn = document.getElementById('cameraBtn');
+    const cameraModal = new bootstrap.Modal(document.getElementById('cameraModal'));
+    const cameraVideo = document.getElementById('cameraVideo');
+    const cameraCanvas = document.getElementById('cameraCanvas');
+    const captureBtn = document.getElementById('captureBtn');
+    const retakeBtn = document.getElementById('retakeBtn');
+
+    // File button click
+    fileBtn.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    // Camera button click
+    cameraBtn.addEventListener('click', async () => {
+        try {
+            cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: 'environment' } // Use back camera on mobile
+            });
+            cameraVideo.srcObject = cameraStream;
+            cameraModal.show();
+        } catch (error) {
+            showError('Camera access denied or not available');
+        }
+    });
+
+    // Camera capture
+    captureBtn.addEventListener('click', () => {
+        const context = cameraCanvas.getContext('2d');
+        cameraCanvas.width = cameraVideo.videoWidth;
+        cameraCanvas.height = cameraVideo.videoHeight;
+        context.drawImage(cameraVideo, 0, 0);
+        
+        cameraCanvas.toBlob((blob) => {
+            currentFile = new File([blob], 'prescription.jpg', { type: 'image/jpeg' });
+            displayPreview(URL.createObjectURL(blob));
+            stopCamera();
+            cameraModal.hide();
+        }, 'image/jpeg', 0.9);
+    });
+
+    // Retake photo
+    retakeBtn.addEventListener('click', () => {
+        cameraVideo.style.display = 'block';
+        captureBtn.style.display = 'inline-block';
+        retakeBtn.style.display = 'none';
+    });
+
+    // Stop camera when modal is hidden
+    document.getElementById('cameraModal').addEventListener('hidden.bs.modal', () => {
+        stopCamera();
+    });
+
+    function stopCamera() {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            cameraStream = null;
+        }
+    }
+
+    // File input change
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            handleFile(file);
+        }
+    });
+
+    // Drag and drop functionality
+    dropArea.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    dropArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropArea.classList.add('dragover');
+    });
+
+    dropArea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropArea.classList.remove('dragover');
+    });
+
+    dropArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropArea.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFile(files[0]);
+        }
+    });
+
+    function handleFile(file) {
+        // Validate file
+        if (!file.type.startsWith('image/')) {
+            showError('Please select an image file');
+            return;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+            showError('File size should be less than 10MB');
+            return;
+        }
+
+        currentFile = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            displayPreview(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function displayPreview(src) {
+        imagePreview.src = src;
+        previewArea.style.display = 'block';
+        dropArea.style.display = 'none';
+        resultsArea.style.display = 'none';
+    }
+
+    // Clear button
+    document.getElementById('clearBtn').addEventListener('click', () => {
+        currentFile = null;
+        previewArea.style.display = 'none';
+        dropArea.style.display = 'block';
+        resultsArea.style.display = 'none';
+        fileInput.value = '';
+    });
+
+    // Process button
+    document.getElementById('processBtn').addEventListener('click', async () => {
+        if (!currentFile) {
+            showError('Please select an image first');
+            return;
+        }
+
+        try {
+            // Show processing
+            previewArea.style.display = 'none';
+            processingArea.style.display = 'block';
+
+            // Upload image
+            const formData = new FormData();
+            formData.append('uploaded_image', currentFile);
+
+            const uploadResponse = await fetch('/api/upload/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': csrftoken
+                }
+            });
+
+            if (!uploadResponse.ok) {
+                throw new Error('Upload failed');
+            }
+
+            const uploadData = await uploadResponse.json();
+            const prescriptionId = uploadData.id;
+
+            // Process prescription
+            const processResponse = await fetch(`/api/process/${prescriptionId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!processResponse.ok) {
+                throw new Error('Processing failed');
+            }
+
+            const processData = await processResponse.json();
+            displayResults(processData);
+
+        } catch (error) {
+            console.error('Error:', error);
+            showError('Processing failed: ' + error.message);
+            previewArea.style.display = 'block';
+        } finally {
+            processingArea.style.display = 'none';
+        }
+    });
+
+    function displayResults(data) {
+        // Show OCR text
+        document.getElementById('ocrText').textContent = data.ocr_text || 'No text detected';
+
+        // Show detected medicines
+        const medicinesList = document.getElementById('medicinesList');
+        medicinesList.innerHTML = '';
+
+        if (data.detected_medicines && data.detected_medicines.length > 0) {
+            data.detected_medicines.forEach(medicine => {
+                const medicineCard = createMedicineCard(medicine);
+                medicinesList.appendChild(medicineCard);
+            });
+        } else {
+            medicinesList.innerHTML = '<div class="col-12"><p class="text-muted text-center">No medicines detected</p></div>';
+        }
+
+        resultsArea.style.display = 'block';
+        resultsArea.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function createMedicineCard(medicine) {
+        const col = document.createElement('div');
+        col.className = 'col-md-6';
+        
+        col.innerHTML = `
+            <div class="card medicine-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">${medicine.medicine_name}</h6>
+                    <span class="badge bg-primary">${(medicine.confidence_score * 100).toFixed(0)}%</span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="text-primary">
+                            <i class="fas fa-flag me-2"></i>English
+                        </h6>
+                        <p class="small">${medicine.explanation_english}</p>
+                    </div>
+                    <div>
+                        <h6 class="text-warning persian-text">
+                            <i class="fas fa-flag me-2"></i>فارسی/دری
+                        </h6>
+                        <p class="small persian-text">${medicine.explanation_persian}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        return col;
+    }
+});
+</script>
+{% endblock %}
