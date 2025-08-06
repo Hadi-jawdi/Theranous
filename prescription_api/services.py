@@ -111,16 +111,53 @@ class MedicineDetectionService:
             r'\b\w*dipine\b',  # Calcium channel blockers
         ]
         
-        # Common medicine names (simplified list)
+        # Comprehensive list of common medicine names
         self.known_medicines = [
-            'aspirin', 'ibuprofen', 'acetaminophen', 'paracetamol',
-            'amoxicillin', 'penicillin', 'erythromycin', 'azithromycin',
-            'lisinopril', 'metformin', 'atorvastatin', 'simvastatin',
-            'omeprazole', 'lansoprazole', 'metoprolol', 'atenolol',
-            'amlodipine', 'nifedipine', 'warfarin', 'heparin',
-            'insulin', 'metformin', 'glipizide', 'glyburide',
-            'prednisone', 'hydrocortisone', 'dexamethasone',
-            'furosemide', 'hydrochlorothiazide', 'spironolactone'
+            # Pain relievers and anti-inflammatory
+            'aspirin', 'ibuprofen', 'acetaminophen', 'paracetamol', 'naproxen', 'diclofenac',
+            'celecoxib', 'meloxicam', 'indomethacin', 'ketorolac',
+            
+            # Antibiotics
+            'amoxicillin', 'penicillin', 'erythromycin', 'azithromycin', 'clarithromycin',
+            'ciprofloxacin', 'levofloxacin', 'doxycycline', 'cephalexin', 'clindamycin',
+            'metronidazole', 'trimethoprim', 'sulfamethoxazole',
+            
+            # Cardiovascular medications
+            'lisinopril', 'enalapril', 'losartan', 'valsartan', 'amlodipine', 'nifedipine',
+            'metoprolol', 'atenolol', 'carvedilol', 'propranolol', 'diltiazem', 'verapamil',
+            'atorvastatin', 'simvastatin', 'rosuvastatin', 'pravastatin', 'lovastatin',
+            'warfarin', 'heparin', 'clopidogrel', 'aspirin',
+            
+            # Diabetes medications
+            'metformin', 'glipizide', 'glyburide', 'insulin', 'glimepiride', 'pioglitazone',
+            'sitagliptin', 'metformin', 'rosiglitazone',
+            
+            # Gastrointestinal medications
+            'omeprazole', 'lansoprazole', 'pantoprazole', 'esomeprazole', 'ranitidine',
+            'famotidine', 'cimetidine', 'sucralfate', 'metoclopramide',
+            
+            # Respiratory medications
+            'albuterol', 'salbutamol', 'fluticasone', 'budesonide', 'montelukast',
+            'theophylline', 'ipratropium', 'tiotropium',
+            
+            # Corticosteroids
+            'prednisone', 'prednisolone', 'hydrocortisone', 'dexamethasone', 'methylprednisolone',
+            'betamethasone', 'triamcinolone',
+            
+            # Diuretics
+            'furosemide', 'hydrochlorothiazide', 'spironolactone', 'amiloride', 'triamterene',
+            'chlorthalidone', 'indapamide',
+            
+            # Mental health medications
+            'sertraline', 'fluoxetine', 'paroxetine', 'citalopram', 'escitalopram',
+            'venlafaxine', 'duloxetine', 'bupropion', 'trazodone', 'mirtazapine',
+            'lorazepam', 'alprazolam', 'clonazepam', 'diazepam',
+            
+            # Thyroid medications
+            'levothyroxine', 'liothyronine', 'methimazole', 'propylthiouracil',
+            
+            # Common supplements and vitamins
+            'vitamin d', 'vitamin b12', 'folic acid', 'iron', 'calcium', 'magnesium'
         ]
     
     def detect_medicines(self, text: str) -> List[Dict[str, any]]:
@@ -211,15 +248,17 @@ class ExplanationService:
             self.tokenizer = None
     
     def generate_explanation(self, medicine_name: str) -> str:
-        """Generate explanation for a medicine using Flan-T5"""
+        """Generate comprehensive explanation for a medicine using Flan-T5"""
         if not self.model or not self.tokenizer:
             return self._get_fallback_explanation(medicine_name)
         
         try:
-            # Create a prompt for medicine explanation
-            prompt = f"Explain what {medicine_name} is used for in simple terms. Include common uses and basic information about this medication."
+            # Create an optimized prompt for better medicine explanations
+            prompt = f"""Provide a clear, comprehensive explanation about the medication {medicine_name}. 
+            Include: 1) What it is used for (main purpose), 2) How it works in the body, 3) Common conditions it treats, 
+            4) Important usage information. Write in simple, easy-to-understand language for patients."""
             
-            # Tokenize input
+            # Tokenize input with optimized parameters
             inputs = self.tokenizer.encode(
                 prompt,
                 return_tensors="pt",
@@ -227,23 +266,26 @@ class ExplanationService:
                 truncation=True
             ).to(self.device)
             
-            # Generate explanation
+            # Generate explanation with optimized parameters for better quality
             with torch.no_grad():
                 outputs = self.model.generate(
                     inputs,
-                    max_length=200,
-                    min_length=50,
-                    num_beams=4,
-                    temperature=0.7,
+                    max_length=300,  # Increased for more comprehensive explanations
+                    min_length=80,   # Increased minimum for more detailed info
+                    num_beams=6,     # More beams for better quality
+                    temperature=0.3, # Lower temperature for more focused, accurate responses
                     do_sample=True,
-                    pad_token_id=self.tokenizer.eos_token_id
+                    repetition_penalty=1.2,  # Reduce repetition
+                    length_penalty=1.0,      # Encourage appropriate length
+                    pad_token_id=self.tokenizer.eos_token_id,
+                    early_stopping=True
                 )
             
             # Decode the generated text
             explanation = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
             
-            # Clean up the explanation
-            explanation = self._clean_explanation(explanation)
+            # Clean up and format the explanation
+            explanation = self._clean_and_format_explanation(explanation, medicine_name)
             
             return explanation
             
@@ -251,33 +293,89 @@ class ExplanationService:
             logger.error(f"Error generating explanation for {medicine_name}: {str(e)}")
             return self._get_fallback_explanation(medicine_name)
     
-    def _clean_explanation(self, explanation: str) -> str:
-        """Clean up the generated explanation"""
-        # Remove any repetitive content
+    def _clean_and_format_explanation(self, explanation: str, medicine_name: str) -> str:
+        """Clean up and format the generated explanation for better readability"""
+        if not explanation:
+            return self._get_fallback_explanation(medicine_name)
+        
+        # Remove the original prompt if it appears in the response
+        explanation = explanation.replace("Provide a clear, comprehensive explanation about the medication", "")
+        explanation = explanation.replace("Include: 1) What it is used for", "")
+        
+        # Clean up common artifacts
+        explanation = explanation.strip()
+        
+        # Remove repetitive content
         sentences = explanation.split('.')
         unique_sentences = []
+        seen_content = set()
+        
         for sentence in sentences:
             sentence = sentence.strip()
-            if sentence and sentence not in unique_sentences:
-                unique_sentences.append(sentence)
+            if sentence and len(sentence) > 10:  # Ignore very short fragments
+                # Check for substantial similarity to avoid repetition
+                sentence_lower = sentence.lower()
+                is_duplicate = False
+                for seen in seen_content:
+                    if len(set(sentence_lower.split()) & set(seen.split())) / max(len(sentence_lower.split()), 1) > 0.7:
+                        is_duplicate = True
+                        break
+                
+                if not is_duplicate:
+                    unique_sentences.append(sentence)
+                    seen_content.add(sentence_lower)
         
-        return '. '.join(unique_sentences[:3]) + '.' if unique_sentences else explanation
+        # Limit to most relevant sentences (max 4-5 for readability)
+        unique_sentences = unique_sentences[:5]
+        
+        if unique_sentences:
+            formatted_explanation = '. '.join(unique_sentences)
+            if not formatted_explanation.endswith('.'):
+                formatted_explanation += '.'
+            
+            # Ensure the medicine name is mentioned in the explanation
+            if medicine_name.lower() not in formatted_explanation.lower():
+                formatted_explanation = f"{medicine_name} is a medication. {formatted_explanation}"
+            
+            return formatted_explanation
+        
+        return self._get_fallback_explanation(medicine_name)
     
     def _get_fallback_explanation(self, medicine_name: str) -> str:
-        """Provide fallback explanation when model is not available"""
+        """Provide comprehensive fallback explanations when model is not available"""
         fallback_explanations = {
-            'aspirin': 'Aspirin is a common pain reliever and anti-inflammatory medication. It is used to treat pain, fever, and inflammation. It may also be prescribed in low doses to help prevent heart attacks and strokes.',
-            'ibuprofen': 'Ibuprofen is a nonsteroidal anti-inflammatory drug (NSAID) used to treat pain, fever, and inflammation. It is commonly used for headaches, muscle aches, arthritis, and menstrual cramps.',
-            'acetaminophen': 'Acetaminophen (also known as paracetamol) is a pain reliever and fever reducer. It is commonly used to treat mild to moderate pain and to reduce fever.',
-            'amoxicillin': 'Amoxicillin is an antibiotic used to treat bacterial infections. It belongs to the penicillin family and is commonly prescribed for respiratory tract infections, ear infections, and urinary tract infections.',
-            'metformin': 'Metformin is a medication used to treat type 2 diabetes. It helps control blood sugar levels by improving the way your body handles insulin.',
+            'aspirin': 'Aspirin is a widely used medication that belongs to a group called nonsteroidal anti-inflammatory drugs (NSAIDs). It works by blocking certain chemicals in your body that cause pain, inflammation, and fever. Aspirin is commonly used to treat headaches, muscle aches, toothaches, and reduce fever. In low doses, it is also prescribed to help prevent heart attacks and strokes by preventing blood clots. Always follow your doctor\'s instructions when taking aspirin.',
+            
+            'ibuprofen': 'Ibuprofen is a nonsteroidal anti-inflammatory drug (NSAID) that reduces pain, inflammation, and fever. It works by blocking enzymes that produce prostaglandins, which are chemicals that cause inflammation and pain. Ibuprofen is effective for treating headaches, dental pain, menstrual cramps, muscle aches, arthritis, and minor injuries. It typically starts working within 30-60 minutes and effects last 4-6 hours.',
+            
+            'acetaminophen': 'Acetaminophen (also known as paracetamol) is a pain reliever and fever reducer. Unlike NSAIDs, it works primarily in the brain to block pain signals and regulate body temperature. It is commonly used for headaches, muscle aches, arthritis, backaches, toothaches, colds, and fevers. Acetaminophen is generally gentler on the stomach than other pain relievers, making it suitable for people who cannot take NSAIDs.',
+            
+            'amoxicillin': 'Amoxicillin is a penicillin-type antibiotic that fights bacterial infections. It works by interfering with the bacteria\'s ability to build their cell walls, causing them to die. It is commonly prescribed for ear infections, strep throat, pneumonia, urinary tract infections, and skin infections. Amoxicillin is only effective against bacterial infections, not viral infections like colds or flu. It\'s important to complete the full course even if you feel better.',
+            
+            'metformin': 'Metformin is the most commonly prescribed medication for type 2 diabetes. It works by reducing the amount of glucose (sugar) produced by the liver and improving your body\'s sensitivity to insulin. This helps lower blood sugar levels and improve glucose control. Metformin may also help with weight management and is sometimes used to treat polycystic ovary syndrome (PCOS). It is usually taken with meals to reduce stomach upset.',
+            
+            'omeprazole': 'Omeprazole is a proton pump inhibitor (PPI) that reduces the amount of acid produced in your stomach. It works by blocking the enzyme responsible for acid production, providing relief from acid-related conditions. It is commonly used to treat gastroesophageal reflux disease (GERD), stomach ulcers, and heartburn. Omeprazole helps heal acid-damaged tissue and prevents further damage by maintaining lower stomach acid levels.',
+            
+            'lisinopril': 'Lisinopril is an ACE inhibitor used to treat high blood pressure (hypertension) and heart failure. It works by relaxing blood vessels, which allows blood to flow more easily and reduces the workload on the heart. By lowering blood pressure, lisinopril helps prevent strokes, heart attacks, and kidney problems. It may take several weeks to see the full benefits of this medication.',
+            
+            'atorvastatin': 'Atorvastatin is a statin medication used to lower cholesterol levels in the blood. It works by blocking an enzyme that your body needs to make cholesterol, thereby reducing the amount of cholesterol produced by the liver. Lower cholesterol levels help prevent heart disease, stroke, and other cardiovascular problems. Atorvastatin is most effective when combined with a healthy diet and regular exercise.',
+            
+            'prednisone': 'Prednisone is a corticosteroid medication that mimics cortisol, a hormone naturally produced by the adrenal glands. It has powerful anti-inflammatory and immune-suppressing effects. Prednisone is used to treat various conditions including allergic reactions, autoimmune diseases, arthritis, asthma, and certain skin conditions. It works by reducing inflammation and suppressing the immune system\'s overactive response.',
         }
         
         medicine_lower = medicine_name.lower()
+        
+        # Check for exact matches first
         if medicine_lower in fallback_explanations:
             return fallback_explanations[medicine_lower]
         
-        return f"{medicine_name} is a medication. Please consult with your healthcare provider or pharmacist for detailed information about this medication, including its uses, dosage, and potential side effects."
+        # Check for partial matches (e.g., "aspirin 325mg" matches "aspirin")
+        for known_medicine, explanation in fallback_explanations.items():
+            if known_medicine in medicine_lower or medicine_lower in known_medicine:
+                return explanation.replace(known_medicine.title(), medicine_name.title())
+        
+        # Generic explanation for unknown medicines
+        return f"{medicine_name} is a medication prescribed by healthcare providers. For detailed information about this specific medication, including its uses, proper dosage, potential side effects, and interactions with other drugs, please consult with your doctor, pharmacist, or refer to the medication\'s official prescribing information. Always follow your healthcare provider\'s instructions when taking any medication."
 
 
 class TranslationService:
