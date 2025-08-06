@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+
+{% block title %}Search Medicine - MediScan Pro{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="text-center mb-5">
+                <h1 class="display-5 fw-bold text-dark mb-3">
+                    <i class="fas fa-search me-2 text-primary"></i>
+                    Search Medicine Information
+                </h1>
+                <p class="lead text-muted">
+                    Enter a medicine name to get detailed information in both English and Persian/Dari
+                </p>
+            </div>
+
+            <!-- Search Card -->
+            <div class="card border-0 shadow-lg mb-4">
+                <div class="card-body p-5">
+                    <!-- Search Form -->
+                    <form id="searchForm" class="mb-4">
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text">
+                                <i class="fas fa-pills text-primary"></i>
+                            </span>
+                            <input type="text" 
+                                   id="medicineInput" 
+                                   class="form-control" 
+                                   placeholder="Enter medicine name (e.g., Aspirin, Ibuprofen, Amoxicillin)"
+                                   required>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="fas fa-search me-2"></i>Search
+                            </button>
+                        </div>
+                        <div class="form-text mt-2">
+                            <i class="fas fa-lightbulb me-1 text-warning"></i>
+                            Try searching for common medicines like aspirin, ibuprofen, or amoxicillin
+                        </div>
+                    </form>
+
+                    <!-- Quick Search Suggestions -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-3">Popular Searches:</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-outline-secondary btn-sm quick-search" data-medicine="aspirin">
+                                Aspirin
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm quick-search" data-medicine="ibuprofen">
+                                Ibuprofen
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm quick-search" data-medicine="acetaminophen">
+                                Acetaminophen
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm quick-search" data-medicine="amoxicillin">
+                                Amoxicillin
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm quick-search" data-medicine="metformin">
+                                Metformin
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm quick-search" data-medicine="omeprazole">
+                                Omeprazole
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Loading Area -->
+                    <div id="loadingArea" class="text-center py-5" style="display: none;">
+                        <div class="loading-spinner mx-auto mb-3"></div>
+                        <h5>Generating Medicine Information...</h5>
+                        <p class="text-muted">Using Google Flan-T5 AI model to create detailed explanations</p>
+                    </div>
+
+                    <!-- Results Area -->
+                    <div id="resultsArea" style="display: none;">
+                        <div class="alert alert-success fade-in">
+                            <h5 class="alert-heading">
+                                <i class="fas fa-check-circle me-2"></i>AI Analysis Complete!
+                            </h5>
+                            <p class="mb-0">Here's comprehensive information about your searched medicine.</p>
+                        </div>
+
+                        <!-- Medicine Information Card -->
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-pills me-2"></i>
+                                    <span id="medicineName"></span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <!-- English Explanation -->
+                                    <div class="col-lg-6 mb-4">
+                                        <div class="h-100 p-3 bg-light rounded">
+                                            <h6 class="text-primary mb-3">
+                                                <i class="fas fa-flag me-2"></i>
+                                                English Information
+                                            </h6>
+                                            <div id="englishExplanation" class="text-dark"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Persian/Dari Explanation -->
+                                    <div class="col-lg-6 mb-4">
+                                        <div class="h-100 p-3 bg-light rounded">
+                                            <h6 class="text-warning mb-3 persian-text">
+                                                <i class="fas fa-flag me-2"></i>
+                                                اطلاعات فارسی/دری
+                                            </h6>
+                                            <div id="persianExplanation" class="text-dark persian-text"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Action Buttons -->
+                                <div class="text-center mt-4">
+                                    <button id="newSearchBtn" class="btn btn-outline-primary me-3">
+                                        <i class="fas fa-search me-2"></i>Search Another Medicine
+                                    </button>
+                                    <button id="shareBtn" class="btn btn-outline-secondary">
+                                        <i class="fas fa-share me-2"></i>Share Results
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Error Area -->
+                    <div id="errorArea" class="alert alert-danger" style="display: none;">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-exclamation-circle me-2"></i>Search Failed
+                        </h5>
+                        <p id="errorMessage" class="mb-0"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Information Section -->
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card border-0 h-100">
+                        <div class="card-body text-center p-4">
+                            <i class="fas fa-robot fa-3x text-success mb-3"></i>
+                            <h6>AI-Powered Explanations</h6>
+                            <p class="text-muted small mb-0">
+                                Generated using Google's Flan-T5 model for accurate, comprehensive information
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 h-100">
+                        <div class="card-body text-center p-4">
+                            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                            <h6>Medical Disclaimer</h6>
+                            <p class="text-muted small mb-0">
+                                Always consult with healthcare professionals before taking any medication
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchForm = document.getElementById('searchForm');
+    const medicineInput = document.getElementById('medicineInput');
+    const loadingArea = document.getElementById('loadingArea');
+    const resultsArea = document.getElementById('resultsArea');
+    const errorArea = document.getElementById('errorArea');
+    const quickSearchButtons = document.querySelectorAll('.quick-search');
+    
+    // Quick search buttons
+    quickSearchButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const medicine = button.dataset.medicine;
+            medicineInput.value = medicine;
+            searchMedicine(medicine);
+        });
+    });
+    
+    // Search form submit
+    searchForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const medicine = medicineInput.value.trim();
+        if (medicine) {
+            searchMedicine(medicine);
+        }
+    });
+    
+    // New search button
+    document.getElementById('newSearchBtn').addEventListener('click', () => {
+        resultsArea.style.display = 'none';
+        errorArea.style.display = 'none';
+        medicineInput.focus();
+        medicineInput.select();
+    });
+    
+    // Share button
+    document.getElementById('shareBtn').addEventListener('click', () => {
+        const medicineName = document.getElementById('medicineName').textContent;
+        const url = window.location.href;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: `Medicine Information: ${medicineName}`,
+                text: `Get detailed information about ${medicineName} on MediScan Pro`,
+                url: url
+            });
+        } else {
+            // Fallback: copy to clipboard
+            navigator.clipboard.writeText(url).then(() => {
+                showSuccess('Link copied to clipboard!');
+            });
+        }
+    });
+    
+    async function searchMedicine(medicineName) {
+        try {
+            // Hide previous results and errors
+            resultsArea.style.display = 'none';
+            errorArea.style.display = 'none';
+            loadingArea.style.display = 'block';
+            
+            // Make API request
+            const response = await fetch('/api/search/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({
+                    medicine_name: medicineName
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Search request failed');
+            }
+            
+            const data = await response.json();
+            displayResults(data);
+            
+        } catch (error) {
+            console.error('Search error:', error);
+            displayError('Failed to search medicine information. Please try again or check your internet connection.');
+        } finally {
+            loadingArea.style.display = 'none';
+        }
+    }
+    
+    function displayResults(data) {
+        document.getElementById('medicineName').textContent = data.medicine_name;
+        document.getElementById('englishExplanation').textContent = data.explanation_english;
+        document.getElementById('persianExplanation').textContent = data.explanation_persian;
+        
+        resultsArea.style.display = 'block';
+        resultsArea.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    function displayError(message) {
+        document.getElementById('errorMessage').textContent = message;
+        errorArea.style.display = 'block';
+        errorArea.scrollIntoView({ behavior: 'smooth' });
+    }
+});
+</script>
+{% endblock %}
