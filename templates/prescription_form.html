@@ -236,7 +236,7 @@
             document.getElementById('errorMessage').innerHTML = '';
             
             try {
-                const response = await fetch('/api/upload-prescription/', {
+const response = await fetch('/api/prescription/', {
                     method: 'POST',
                     body: formData,
                     headers: {
