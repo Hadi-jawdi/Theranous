@@ -1,2 +1,7 @@
-venv
+venv/
+dbsqlite3/
+TESSERACT_INSTALLATION.md
+test_tesseract.py
+
+
 

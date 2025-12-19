@@ -122,3 +122,9 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Tesseract OCR Configuration
+# Uncomment and set the path if Tesseract is not found automatically
+# For Windows, common paths are:
+TESSERACT_CMD = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+#TESSERACT_CMD = r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe'

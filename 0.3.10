@@ -1,0 +1,4 @@
+Defaulting to user installation because normal site-packages is not writeable
+Requirement already satisfied: pytesseract in c:\users\programmer_hadi\appdata\local\packages\pythonsoftwarefoundation.python.3.13_qbz5n2kfra8p0\localcache\local-packages\python313\site-packages (0.3.13)
+Requirement already satisfied: packaging>=21.3 in c:\users\programmer_hadi\appdata\local\packages\pythonsoftwarefoundation.python.3.13_qbz5n2kfra8p0\localcache\local-packages\python313\site-packages (from pytesseract) (24.2)
+Requirement already satisfied: Pillow>=8.0.0 in c:\users\programmer_hadi\appdata\local\packages\pythonsoftwarefoundation.python.3.13_qbz5n2kfra8p0\localcache\local-packages\python313\site-packages (from pytesseract) (11.0.0)

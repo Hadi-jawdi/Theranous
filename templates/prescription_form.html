@@ -3,75 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NextCareRx - Upload Prescription</title>
+    <title>Theranous - Prescription Reader & Explainer</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .explanation-box {
+            direction: ltr;
+            text-align: left;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+        }
+        .explanation-box-persian {
+            direction: rtl;
+            text-align: right;
+            font-family: 'Tahoma', 'Arial', sans-serif;
+            line-height: 1.8;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center">
-    <div class="container mt-5">
-        <h1 class="text-3xl font-bold mb-4 text-center">NextCareRx - Upload Prescription</h1>
-        <form id="uploadForm" class="bg-white p-4 rounded shadow-md flex flex-col gap-4" enctype="multipart/form-data">
-            <input class="form-control" type="file" name="image" id="imageInput" accept="image/*" required />
-            <button type="submit" class="btn btn-primary">Upload & Analyze</button>
-        </form>
-        <div id="results" class="mt-5 hidden">
-            <h2 class="text-xl font-semibold mb-2">Results</h2>
-            <div class="mb-2">
-                <strong>Extracted Text:</strong>
-                <pre id="extractedText" class="bg-gray-200 p-2 rounded"></pre>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mt-5 mb-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <h1 class="text-3xl font-bold mb-4 text-center text-blue-600">Theranous</h1>
+                <p class="text-center text-gray-600 mb-5">Upload your prescription image and get a simple explanation in English and Persian</p>
+                
+                <div class="card shadow-lg">
+                    <div class="card-body p-4">
+                        <form id="uploadForm" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="imageInput" class="form-label fw-bold">Select Prescription Image</label>
+                                <input class="form-control form-control-lg" type="file" name="image" id="imageInput" accept="image/*" required />
+                                <small class="form-text text-muted">Supported formats: JPG, PNG, GIF</small>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-lg w-100" id="submitBtn">
+                                <span id="submitText">Upload & Analyze Prescription</span>
+                                <span id="submitSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="loadingDiv" class="text-center mt-4 d-none">
+                    <div class="loading-spinner"></div>
+                    <p class="mt-3 text-gray-600">Processing your prescription... This may take a moment.</p>
+                </div>
+
+                <div id="results" class="mt-5 d-none">
+                    <div class="card shadow-lg mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h3 class="mb-0">Extracted Text from Prescription</h3>
+                        </div>
+                        <div class="card-body">
+                            <pre id="extractedText" class="bg-light p-3 rounded border" style="white-space: pre-wrap; word-wrap: break-word;"></pre>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <div class="card shadow-lg h-100">
+                                <div class="card-header bg-success text-white">
+                                    <h4 class="mb-0">📋 Explanation (English)</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="explanationEn" class="explanation-box bg-light p-3 rounded border" style="white-space: pre-wrap; word-wrap: break-word; min-height: 200px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card shadow-lg h-100">
+                                <div class="card-header bg-info text-white">
+                                    <h4 class="mb-0">📋 توضیحات (فارسی)</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="explanationFa" class="explanation-box-persian bg-light p-3 rounded border" style="white-space: pre-wrap; word-wrap: break-word; min-height: 200px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="errorMsg" class="alert alert-danger mt-3 d-none" role="alert">
+                    <strong>Error:</strong> <span id="errorText"></span>
+                </div>
             </div>
-            <div class="mb-2">
-                <strong>AI Explanation (English):</strong>
-                <pre id="explanationEn" class="bg-gray-200 p-2 rounded"></pre>
-            </div>
-            <div class="mb-2">
-                <strong>AI Explanation (Dari):</strong>
-                <pre id="explanationFa" class="bg-gray-200 p-2 rounded"></pre>
-            </div>
-        </div>
-        <div id="errorMsg" class="mt-3 text-red-600">
-            {% if error %}{{ error }}{% endif %}
         </div>
     </div>
+
     <script>
         const form = document.getElementById('uploadForm');
         const results = document.getElementById('results');
+        const loadingDiv = document.getElementById('loadingDiv');
         const extractedText = document.getElementById('extractedText');
         const explanationEn = document.getElementById('explanationEn');
         const explanationFa = document.getElementById('explanationFa');
         const errorMsg = document.getElementById('errorMsg');
+        const errorText = document.getElementById('errorText');
+        const submitBtn = document.getElementById('submitBtn');
+        const submitText = document.getElementById('submitText');
+        const submitSpinner = document.getElementById('submitSpinner');
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            results.classList.add('hidden');
-            errorMsg.textContent = '';
+            
+            // Reset UI
+            results.classList.add('d-none');
+            errorMsg.classList.add('d-none');
+            loadingDiv.classList.remove('d-none');
+            submitBtn.disabled = true;
+            submitText.textContent = 'Processing...';
+            submitSpinner.classList.remove('d-none');
+            
             const formData = new FormData(form);
+            
             try {
                 const response = await fetch('/api/upload-prescription/', {
                     method: 'POST',
                     body: formData
                 });
-                const rawText = await response.text(); // Only read once!
+                
+                const rawText = await response.text();
                 let data;
+                
                 try {
-                    data = JSON.parse(rawText); // Try to parse as JSON
+                    data = JSON.parse(rawText);
                 } catch (jsonErr) {
-                    // If not JSON, log the raw response
-                    console.log('Raw response:', rawText);
-                    errorMsg.textContent = 'Server error: Unexpected response.';
-                    return;
+                    console.error('JSON parse error:', jsonErr);
+                    console.log('Raw response (first 500 chars):', rawText.substring(0, 500));
+                    // Try to extract error message from HTML if it's an HTML error page
+                    let errorMessage = 'Server returned an invalid response. ';
+                    if (rawText.includes('<title>')) {
+                        const titleMatch = rawText.match(/<title>(.*?)<\/title>/i);
+                        if (titleMatch) {
+                            errorMessage += `Error: ${titleMatch[1]}. `;
+                        }
+                    }
+                    if (rawText.includes('Tesseract')) {
+                        errorMessage += 'It looks like Tesseract OCR might not be installed. Please install Tesseract OCR on your system.';
+                    } else if (rawText.length < 1000) {
+                        errorMessage += `Server response: ${rawText.substring(0, 200)}`;
+                    } else {
+                        errorMessage += 'Please check the server logs for more details.';
+                    }
+                    throw new Error(errorMessage);
                 }
+                
                 if (!response.ok) {
-                    throw new Error(data.error || 'Upload failed');
+                    const errorMsg = data.error || `Upload failed with status ${response.status}. Please try again.`;
+                    throw new Error(errorMsg);
                 }
-                extractedText.textContent = data.extracted_text || '';
-                explanationEn.textContent = data.explanation_en || '';
-                explanationFa.textContent = data.explanation_fa || '';
-                results.classList.remove('hidden');
+                
+                // Display results
+                extractedText.textContent = data.extracted_text || 'No text could be extracted.';
+                explanationEn.textContent = data.explanation_en || 'Explanation not available.';
+                explanationFa.textContent = data.explanation_fa || 'توضیحات در دسترس نیست.';
+                
+                results.classList.remove('d-none');
+                loadingDiv.classList.add('d-none');
+                
+                // Scroll to results
+                results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
             } catch (err) {
-                errorMsg.textContent = err.message;
+                errorText.textContent = err.message;
+                errorMsg.classList.remove('d-none');
+                loadingDiv.classList.add('d-none');
+                console.error('Error:', err);
+            } finally {
+                submitBtn.disabled = false;
+                submitText.textContent = 'Upload & Analyze Prescription';
+                submitSpinner.classList.add('d-none');
             }
         });
     </script>
