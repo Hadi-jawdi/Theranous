@@ -1,4 +1,4 @@
-# 🏥 Theranous - Prescription Reader API
+# Theranous - Prescription Reader API
 
 **An enhanced Django API that processes prescription images using OCR and provides detailed medicine explanations in both English and Persian (Farsi).**
 
@@ -81,11 +81,6 @@ curl -X POST http://127.0.0.1:8000/api/prescription/ \
      -F 'image=@prescription.jpg'
 ```
 
-**Demo Script:**
-```bash
-python demo_prescription_reader.py
-```
-
 ## 📡 API Endpoints
 
 ### Upload Prescription
@@ -100,7 +95,7 @@ python demo_prescription_reader.py
 - **Method**: `GET`
 - **Description**: HTML form for prescription upload
 
-## 🧠 Medicine Recognition
+##  Medicine Recognition
 
 The system uses advanced pattern recognition to identify medicines:
 
@@ -172,7 +167,7 @@ fetch('/api/prescription/', {
 5. **Persian Translation**: Translates explanations using medical dictionary
 6. **Response**: Returns structured JSON with all information
 
-## ⚕️ Medicine Information Provided
+## Medicine Information Provided
 
 For each identified medicine:
 
@@ -258,10 +253,7 @@ This project is licensed under the MIT License.
 - **Django REST Framework** for API development
 - **Bootstrap** for UI components
 
-## 📞 Support
 
-For support, please create an issue in the repository or contact the development team.
-
----
 
 **⚕️ Medical Disclaimer**: This tool is for informational purposes only and should not replace professional medical advice. Always consult with healthcare providers for medical decisions.
+HadHadi
